@@ -26,24 +26,45 @@ export default class Select {
   }
 
   selectValue(value) {
+    // this.options Array를 받아와 Element 중 value 인자로 넘어온
+    // 값과 비교해서 일치한 값을 return해준다.
     const newSelectedOption = this.options.find((option) => {
       return option.value === value;
     });
+
+    // 이전에 선택된 option 객체
     const prevSelectedOption = this.selectedOption;
+
+    // 이전에 선택된 option 객체의 selected 속성을 false로
+    // 이전에 선택된 option 객체 안에 있는 element 객체의 selected 속성도 false로
     prevSelectedOption.selected = false;
     prevSelectedOption.element.selected = false;
 
+    // 현재 선택된 option 객체의 selected 속성을 false로
+    // 현재 선택된 option 객체 안에 있는 element 객체의 selected 속성도 false로
     newSelectedOption.selected = true;
     newSelectedOption.element.selected = true;
 
+    // 현재 선택된 option 객체의 label 속성을 labelElement의 텍스트로 함
     this.labelElement.innerText = newSelectedOption.label;
+
+    // `data.."]` 와 같이 `(백틱)으로 묶은 문자열을 탬플릿 리터럴이라고 함
+    // 주로 문자열안에 변수명을 넣어야할 경우 가독성을 위해 사용됨
+    // 커스텀한 선택상자에서 data값이 이전에 선택된 값인 객체의
+    // class에서 "selected"을 없앤다.
     this.optionsCustomElement
       .querySelector(`[data-value="${prevSelectedOption.value}"]`)
       .classList.remove("selected");
+
+    // 커스텀한 선택상자에서 data값이 새로 선택된 값인 객체의
+    // class에서 "selected"을 추가한다.
     const newCustomElement = this.optionsCustomElement.querySelector(
       `[data-value="${newSelectedOption.value}"]`
     );
     newCustomElement.classList.add("selected");
+
+    // scrollIntoView 메소드는 스크롤 할 때 화면이 수직으로 정렬될 위치를 결정함
+    // block: nearest의 경우 start와 end를 혼합한 속성이라 보면 됌
     newCustomElement.scrollIntoView({ block: "nearest" });
   }
 }
@@ -89,7 +110,6 @@ function setupCustomElement(select) {
     // <option data-value=option.value></option>
     optionElement.dataset.value = option.value;
 
-    // (27:11)
     optionElement.addEventListener("click", () => {
       select.selectValue(option.value);
       select.optionsCustomElement.classList.remove("show");
@@ -105,45 +125,67 @@ function setupCustomElement(select) {
     select.optionsCustomElement.classList.toggle("show");
   });
 
+  // 선택 상자가 아닌 다른 곳에 마우스 클릭을 해서 포커스를 잃거나
+  // Tab 키를 이용해서 포커스를 잃을 때 발생하는 이벤트
   select.customElement.addEventListener("blur", () => {
     select.optionsCustomElement.classList.remove("show");
   });
 
   let debounceTimeout;
   let searchTerm = "";
+
+  // 키보드를 눌렀을 때 발생하는 이벤트
   select.customElement.addEventListener("keydown", (e) => {
     switch (e.code) {
       case "Space":
         select.optionsCustomElement.classList.toggle("show");
         break;
       case "ArrowUp": {
+        // options 배열에서
+        // 현재 선택된 옵션 이전 인덱스의 option 객체
         const prevOption = select.options[select.selectedOptionIndex - 1];
+
+        // 위 방향키를 눌러 prevOption이 됬을 경우
         if (prevOption) {
+          // prevOption 객체의 값으로 지정
           select.selectValue(prevOption.value);
         }
         break;
       }
       case "ArrowDown": {
+        // ArrowUp 케이스와 같은 논리
         const nextOption = select.options[select.selectedOptionIndex + 1];
         if (nextOption) {
           select.selectValue(nextOption.value);
         }
         break;
       }
+
+      // Enter와 Esscape 같은 역할을 하고 싶어서 이어 붙임
       case "Enter":
       case "Escape":
         select.optionsCustomElement.classList.remove("show");
         break;
       default: {
+        // clearTimeout은 일정시간 후 함수를 실행하는 함수
         clearTimeout(debounceTimeout);
+
+        // 입력한 키보드 값을 저장해두는 곳
         searchTerm += e.key;
+
+        // 자바스크립트에선 변수명에 함수를 저장하는 행위 가능
+        // 0.5초가 흐르면 입력한 키보드 값이 초기화되도록 하는 함수 생성
         debounceTimeout = setTimeout(() => {
           searchTerm = "";
         }, 500);
 
+        // 옵션의 텍스트를 소문자화해서 입력한 값과 비교한 것 중
+        // 첫 번째 옵션을 가져옴
         const searchedOption = select.options.find((option) => {
           return option.label.toLowerCase().startsWith(searchTerm);
         });
+
+        // 가져온 옵션을 선택상자의 값으로 지정
         if (searchedOption) {
           select.selectValue(searchedOption.value);
         }
